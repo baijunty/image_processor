@@ -1,121 +1,68 @@
----
-library_name: transformers
-license: apache-2.0
-base_model: SmilingWolf/wd-swinv2-tagger-v3
-inference: false
-tags:
-- wd-tagger
-- optimum
----
+ # 使用AI处理图片
 
-# WD SwinV2 Tagger v3 with 🤗 transformers
+本项目旨在提供一个基于AI的图像处理工具。以下是如何使用该工具进行图像处理的详细指南。
 
-Converted from [SmilingWolf/wd-swinv2-tagger-v3](https://huggingface.co/SmilingWolf/wd-swinv2-tagger-v3) to transformers library format.
+## 环境准备
 
-## Example
-
-[![](https://camo.githubusercontent.com/f5e0d0538a9c2972b5d413e0ace04cecd8efd828d133133933dfffec282a4e1b/68747470733a2f2f636f6c61622e72657365617263682e676f6f676c652e636f6d2f6173736574732f636f6c61622d62616467652e737667)](https://colab.research.google.com/gist/p1atdev/d420d9fcd5c8ea66d9e10918fc330741/wd-swinv2-tagger-v3-hf-pipe.ipynb)
-
-### Installation
+确保你已经安装了必要的Python包，可以通过以下命令安装：
 
 ```bash
-pip install transformers
+pip install torch transformers
 ```
 
-### Pipeline
+## 如何使用
 
-```py
-from transformers import pipeline
+### 初始化ImageProcessor类
 
-pipe = pipeline(
-    "image-classification",
-    model="p1atdev/wd-swinv2-tagger-v3-hf",
-    trust_remote_code=True,
-)
+首先，你需要实例化`ImageProcessor`类并设置设备（CPU或GPU）。
 
-print(pipe("sample.webp", top_k=15))
-#[{'label': '1girl', 'score': 0.9973934888839722},
-# {'label': 'solo', 'score': 0.9719744324684143},
-# {'label': 'dress', 'score': 0.9539461135864258},
-# {'label': 'hat', 'score': 0.9511678218841553},
-# {'label': 'outdoors', 'score': 0.9438753128051758},
-# ...
+```python
+from image_process import ImageProcessor
+
+processor = ImageProcessor()
 ```
 
+### 处理图像标签
 
-### AutoModel
+你可以使用以下方法获取图像的标签：
 
+```python
+images = ["path/to/image1.jpg", "path/to/image2.jpg"]  # 替换为你的图像路径
+limit = 5  # 你希望返回的标签数量
+threshold = 0.5  # 标签置信度阈值
 
-```py
-from PIL import Image
-
-import numpy as np
-import torch
-
-from transformers import (
-    AutoImageProcessor,
-    AutoModelForImageClassification,
-)
-
-MODEL_NAME = "p1atdev/wd-swinv2-tagger-v3-hf"
-
-model = AutoModelForImageClassification.from_pretrained(
-    MODEL_NAME,
-)
-processor = AutoImageProcessor.from_pretrained(MODEL_NAME, trust_remote_code=True)
-
-image = Image.open("sample.webp")
-inputs = processor.preprocess(image, return_tensors="pt")
-
-with torch.no_grad():
-  outputs = model(**inputs.to(model.device, model.dtype))
-logits = torch.sigmoid(outputs.logits[0]) # take the first logits
-
-# get probabilities
-results = {model.config.id2label[i]: logit.float() for i, logit in enumerate(logits)}
-results = {
-    k: v for k, v in sorted(results.items(), key=lambda item: item[1], reverse=True) if v > 0.35 # 35% threshold
-}
-print(results)  # rating tags and character tags are also included
-#{'1girl': tensor(0.9974),
-# 'solo': tensor(0.9720),
-# 'dress': tensor(0.9539),
-# 'hat': tensor(0.9512),
-# 'outdoors': tensor(0.9439),
-# ...
+tags = processor.processing_tags(images, limit, threshold)
+print(tags)
 ```
 
-### Accelerate with 🤗 Optimum
+### 提取图像特征
 
-Maybe about 30% faster and about 50% light weight model size than transformers version, but the accuracy is slightly degraded.
+你可以使用以下方法获取图像的特征：
 
-```bash
-pip install optimum[onnxruntime] 
+```python
+images = ["path/to/image1.jpg", "path/to/image2.jpg"]  # 替换为你的图像路径
+features = processor.processing_feature(images)
+print(features)
 ```
 
-```diff
--from transformers import pipeline
-+from optimum.pipelines import pipeline
+### 文本嵌入
 
-pipe = pipeline(
-    "image-classification",
-    model="p1atdev/wd-swinv2-tagger-v3-hf",
-    trust_remote_code=True,
-)
+你可以使用以下方法获取文本的嵌入：
 
-print(pipe("sample.webp", top_k=15))
-#[{'label': '1girl', 'score': 0.9966088533401489},
-# {'label': 'solo', 'score': 0.9740601778030396},
-# {'label': 'dress', 'score': 0.9618403911590576},
-# {'label': 'hat', 'score': 0.9563733339309692},
-# {'label': 'outdoors', 'score': 0.945336639881134},
-# ...
+```python
+docs = ["这是第一个文档", "这是第二个文档"]  # 替换为你希望处理的文本
+limit = 2  # 你希望返回的相似文本数量
+threshold = 0.5  # 嵌入置信度阈值
+
+embeddings = processor.text_embedings(docs, limit, threshold)
+print(embeddings)
 ```
 
+## 常见问题
 
-## Labels
+如果你在处理过程中遇到任何问题，请参考以下资源：
 
-All of rating tags have prefix `rating:` and character tags have prefix `character:`.
+- [PyTorch官方文档](https://pytorch.org/docs/)
+- [Transformers库文档](https://huggingface.co/transformers/)
 
-- Rating tags: `rating:general`, `rating:sensitive`, ...
-- Character tags: `character:frieren`, `character:hatsune miku`, ...
+通过以上步骤，你可以使用AI处理图片并获取相关标签、特征和文本嵌入。希望这个指南对你有所帮助！
