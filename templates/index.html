@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>图片处理</title>
+<style>
+    #dropArea {
+        border: 2px dashed #ccc;
+        width: 40%;
+        height: 40%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+
+    #imagePreview {
+        max-width: 100%;
+        margin-top: 20px;
+    }
+</style>
+
+<body>
+    <div>
+        <form action="/evaluate" method="post" enctype="multipart/form-data" style="display: flex; flex-direction: column;width: 50%; margin-left: auto; margin-right: auto;">
+            <div  id="dropArea" >
+                <p>拖拽图片或选择文件</p>
+                <input type="file" name="file"accept="image/*">
+                <img id="imagePreview" src="#" alt="预览图片" style="display:none;">
+            </div>
+            <input type="range" name="limit" min="10" max="100" value="30" step="1">
+            <input type="range" name="threshold" min="0.1" max="1" value="0.2" step="0.05">
+            <input type="text" name="docs">
+            <select name="process" id="process">
+                <option value="tagger">标签</option>
+                <option value="feature" selected>特征</option>
+                <option value="translate">翻译</option>
+            </select>
+            <select name="lang" id="lang">
+                <option value="ja" selected>日语</option>
+                <option value="en">英语</option>
+            </select>
+            <input type="submit" value="Submit">
+        </form>
+    </div>
+    <script>
+        const dropArea = document.getElementById('dropArea');
+        const imagePreview = document.getElementById('imagePreview');
+        // 阻止默认的拖放行为
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        // 处理拖拽进入和离开事件
+        ['dragenter', 'dragleave'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+
+        function highlight(e) {
+            dropArea.classList.toggle('highlight', e.type === 'dragenter');
+        }
+
+        // 处理文件粘贴或拖放事件
+        ['drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, handleDrop, false);
+        });
+
+        function handleDrop(e) {
+            const files = (e.dataTransfer || e.clipboardData).files;
+            handleFiles(files);
+        }
+
+        // 处理文件对象
+        function handleFiles(files) {
+            [...files].forEach(uploadFile);
+        }
+
+        // 上传文件并显示预览
+        function uploadFile(file) {
+            if (!file.type.startsWith('image/')) return;
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                imagePreview.src = reader.result;
+                imagePreview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+    </script>
+</body>
+
+</html>
