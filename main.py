@@ -12,6 +12,8 @@ def index():
 
 @app.route('/evaluate', methods=['POST'])
 def upload_file():
+    import time
+    start=time.time()
     files = request.files.getlist("file")
     print('received ',files)
     proces = request.values.get("process", '')
@@ -39,7 +41,6 @@ def upload_file():
                 print('input ',data)
                 docs=json.loads(data)
                 result=image_processor.text_embedings(docs,limit,threshold)
-                return jsonify(result)
             else:
                 return jsonify({'error': 'No input part'}), 400
         case 'translate':
@@ -51,12 +52,11 @@ def upload_file():
             import cv2
             import os
             import io
-            import time
-            start=time.time()
             lang = request.values.get("lang", 'ja')
             result = translator.translate(cv2.cvtColor(numpy.asarray(image), cv2.COLOR_RGB2BGR),src=lang)
             print(f'process translate {lang} time {time.time()-start}')
             return send_file(io.BytesIO(result),mimetype='image/jpg',as_attachment=True,download_name=f'{os.path.splitext(files[0].filename)[0]}.jpg')
+    print(f'process {proces} time {time.time()-start}')
     return jsonify(result)
 
 if __name__ == '__main__':

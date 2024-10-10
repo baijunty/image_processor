@@ -1,5 +1,6 @@
 import math
 import functools
+from collections import Counter
 # Import required packages
 import cv2
 import torch
@@ -7,13 +8,8 @@ from ultralytics import YOLO
 from transformers import ViTImageProcessor, AutoTokenizer, VisionEncoderDecoderModel
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
-from collections import Counter
 from easyocr import Reader
-from craft_text_detector import (
-    load_craftnet_model,
-    load_refinenet_model,
-    get_prediction
-)
+from craft_text_detector import load_craftnet_model,get_prediction
 
 PRETRAINED_MODEL_NAME_OR_PATH = "kha-white/manga-ocr-base"
 
@@ -37,12 +33,12 @@ class Translator:
         self.model = VisionEncoderDecoderModel.from_pretrained(
             PRETRAINED_MODEL_NAME_OR_PATH).to(self.device)
         # self.refine_net = load_refinenet_model(cuda=torch.cuda.is_available())
-        self.craft_net = load_craftnet_model(cuda=torch.cuda.is_available())
+        self.craft_net = load_craftnet_model(cuda=self.device=='cuda')
         self.reader = Reader(['en','ko'])
 
     def craft_text_bubble_detect(self, image):
         prediction_result = get_prediction(image=image, craft_net=self.craft_net, refine_net=None,
-                                           text_threshold=0.6, link_threshold=0.4, low_text=0.4, cuda=True, long_size=max(image.shape),poly=False)
+                                           text_threshold=0.6, link_threshold=0.4, low_text=0.4, cuda=self.device=='cuda', long_size=max(image.shape),poly=False)
         result = []
         for box in prediction_result["boxes"]:
             # result_rgb = file_utils.rectify_poly(image,box)
@@ -270,10 +266,12 @@ class Translator:
         boxes = self.yolo.predict(img)[0]
         if len(boxes)==0:
             return cv2.imencode(".jpg", img)[1].tobytes()
-        boxes = [[round(x.item()) for x in cnt.boxes[0].xyxy[0]]
-                 for cnt in boxes if cnt.boxes[0].conf >= 0.7]
+        boxes = [[round(x.item()) for x in cnt.boxes[0].xyxy[0]] for cnt in boxes]
         boxes = self.__sort_areaes(boxes)
-        print(f'yolo detetor time {time.time()-start}')
+        print(f'boxes {boxes}')
+        if len(boxes)==0:
+            return cv2.imencode(".jpg", img)[1].tobytes()
+        print(f'yolo detetor time {time.time()-start} len {len(boxes)}')
         start=time.time()
         # for box in boxes:
         #     cv2.rectangle(img, (box[0], box[1]),
@@ -286,7 +284,7 @@ class Translator:
             counter = Counter(list(cimg.getdata())).most_common(1)
             color = counter[0][0]
             bubble_images.append((croped,color))
-        print(f'count color time {time.time()-start}')
+        print(f'count color time {time.time()-start} len {len(bubble_images)}')
         start=time.time()
         if src == 'ja':
             origin_text = self.jp_text_ocr([image for (image,color) in bubble_images])

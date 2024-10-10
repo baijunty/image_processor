@@ -78,14 +78,15 @@ class ImageProcessor:
         inputs = self.tokenizer(docs, padding=True, return_tensors='pt')
         for k, v in inputs.items():
             inputs[k] = v.to(self.device)
-        outputs = self.text_model(**inputs).last_hidden_state
-        embeddings = outputs[:, 0].cpu().detach().numpy()
-        import numpy as np
-        from numpy.linalg import norm
-        target = embeddings[0]
-        similarities = [np.dot(target,item)/(norm(target)*norm(item)) for item in embeddings[1:]]
-        similarities = [{docs[i+1]:similarity.item()} for i,similarity in enumerate(similarities) if similarity > threshold]
-        return similarities[:limit]
+        with torch.no_grad():
+            outputs = self.text_model(**inputs).last_hidden_state
+            embeddings = outputs[:, 0].cpu().detach().numpy()
+            import numpy as np
+            from numpy.linalg import norm
+            target = embeddings[0]
+            similarities = [np.dot(target,item)/(norm(target)*norm(item)) for item in embeddings[1:]]
+            similarities = [{docs[i+1]:similarity.item()} for i,similarity in enumerate(similarities) if similarity > threshold]
+            return similarities[:limit]
 
 def image_process(use_model, preprocess, images, use_device):
     """
