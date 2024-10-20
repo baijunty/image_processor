@@ -23,7 +23,7 @@
 
     .centerContent {
         width: 50%;
-        margin-left:auto;
+        margin-left: auto;
         margin-right: auto;
     }
 </style>
@@ -32,7 +32,8 @@
     <div>
         <div id="dropArea" class="centerContent">
             <img id="imagePreview" src="#" alt="预览图片" style="display:none;">
-            <p id="tips">拖拽图片或选择文件</p>
+            <div id="tips" style="align-items: center;align-self: center;">提示：拖拽图片或粘贴图片</div>
+            <input id="fileInput" type="file" id="imageInput" accept="image/*" hidden>
         </div>
         <form action="/evaluate" method="post" enctype="multipart/form-data"
             style="display: flex; flex-direction: column;" class="centerContent" id="form">
@@ -42,8 +43,9 @@
                 <option value="tagger">标签</option>
                 <option value="feature" selected>特征</option>
                 <option value="translate">翻译</option>
+                <option value="autoColor">上色</option>
             </select>
-            <select name="lang" id="lang">
+            <select name="lang" id="lang" style="display: none;">
                 <option value="ja" selected>日语</option>
                 <option value="en">英语</option>
             </select>
@@ -55,16 +57,16 @@
         const imagePreview = document.getElementById('imagePreview');
         const submit = document.getElementById('submit');
         const formData = new FormData();
-        const tips=document.getElementById('tips');
+        const tips = document.getElementById('tips');
         submit.addEventListener('click', function (e) {
             e.preventDefault();
             // for(var child of document.getElementById('form').children) {
             //     formData.append(child.getAttribute('name'), child.getAttribute('value'));
             // }
             document.getElementById('form').childNodes.forEach(child => {
-                if(child.nodeName=='INPUT'){
+                if (child.nodeName == 'INPUT') {
                     formData.set(child.getAttribute('name'), child.getAttribute('value'));
-                } else if(child.nodeName=='SELECT'){
+                } else if (child.nodeName == 'SELECT') {
                     formData.set(child.getAttribute('name'), child.options[child.selectedIndex].value);
                 }
             });
@@ -72,16 +74,16 @@
                 method: 'POST',
                 body: formData
             }).then((resp) => {
-                    if(resp.headers.get("Content-Type")=='application/json'){
-                        resp.json().then(data=>tips.innerText=Object.keys(data[0]));
-                    } else {
-                        resp.blob().then(blob => {
-                            const url = URL.createObjectURL(blob);
-                            imagePreview.src = url;
-                            imagePreview.style.display = 'block';
-                        });
-                    }
-                });
+                if (resp.headers.get("Content-Type") == 'application/json') {
+                    resp.json().then(data => tips.innerText = Object.keys(data[0]));
+                } else {
+                    resp.blob().then(blob => {
+                        const url = URL.createObjectURL(blob);
+                        imagePreview.src = url;
+                        imagePreview.style.display = 'block';
+                    });
+                }
+            });
 
         });
         // 阻止默认的拖放行为
@@ -93,6 +95,14 @@
             e.preventDefault();
             e.stopPropagation();
         }
+        // process非选择翻译时隐藏lang
+        document.getElementById('process').addEventListener('change', function () {
+            if (this.value !== 'translate') {
+                document.getElementById('lang').style.display = 'none';
+            } else {
+                document.getElementById('lang').style.display = '';
+            }
+        });
 
         // 处理拖拽进入和离开事件
         ['dragenter', 'dragleave'].forEach(eventName => {
@@ -107,7 +117,14 @@
         ['drop'].forEach(eventName => {
             dropArea.addEventListener(eventName, handleDrop, false);
         });
-
+        const fileInput = document.getElementById('fileInput');
+        dropArea.addEventListener('click', (e) => {
+            fileInput.click();
+        });
+        document.getElementById('fileInput').addEventListener('change', function (e) {
+            e.preventDefault();
+            uploadFile(fileInput.files[0]);
+        });
         function handleDrop(e) {
             const files = (e.dataTransfer || e.clipboardData).files;
             handleFiles(files);
@@ -127,9 +144,22 @@
                 imagePreview.style.display = 'block';
             };
             formData.set('file', file);
-            tips.style.innerText=''
             reader.readAsDataURL(file);
         }
+
+        document.addEventListener('DOMContentLoaded', (event) => {
+            // 监听粘贴事件
+            window.addEventListener('paste', (event) => {
+                event.preventDefault(); // 阻止默认的粘贴行为
+                const items = (event.clipboardData || window.clipboardData).items;
+                for (let i = 0; i < items.length; i++) {
+                    if (items[i].type.indexOf('image') !== -1) {
+                        console.log(items[i].getAsFile());
+                        uploadFile(items[i].getAsFile());
+                    }
+                }
+            });
+        });
     </script>
 </body>
 

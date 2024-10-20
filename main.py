@@ -2,10 +2,11 @@ from flask import Flask, request, jsonify, render_template,send_file
 from fastai.vision.core import PILImage
 from translator import Translator
 from image_process import ImageProcessor
+from auto_color import AutoColor
 app = Flask(__name__)
 translator=Translator()
 image_processor=ImageProcessor()
-
+coloring=AutoColor()
 @app.route("/", methods=["GET"])
 def index():
     return render_template("index.html")
@@ -55,6 +56,17 @@ def upload_file():
             lang = request.values.get("lang", 'ja')
             result = translator.translate(cv2.cvtColor(numpy.asarray(image), cv2.COLOR_RGB2BGR),src=lang)
             print(f'process translate {lang} time {time.time()-start}')
+            return send_file(io.BytesIO(result),mimetype='image/jpg',as_attachment=True,download_name=f'{os.path.splitext(files[0].filename)[0]}.jpg')
+        case 'autoColor':
+            if not files or len(files) == 0:
+                return jsonify({'error': 'No file part'}), 400
+            files = request.files.getlist("file")
+            image=PILImage.create(files[0])
+            import numpy
+            import cv2
+            import os
+            import io
+            result = coloring.coloring(cv2.cvtColor(numpy.asarray(image), cv2.COLOR_RGB2BGR),os.path.splitext(files[0].filename)[0])
             return send_file(io.BytesIO(result),mimetype='image/jpg',as_attachment=True,download_name=f'{os.path.splitext(files[0].filename)[0]}.jpg')
     print(f'process {proces} time {time.time()-start}')
     return jsonify(result)

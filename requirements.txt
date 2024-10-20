@@ -11,3 +11,4 @@ torch
 transformers
 ultralytics
 unidic_lite
+websockets

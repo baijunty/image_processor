@@ -26,15 +26,38 @@ class Translator:
     def __init__(self):
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.yolo = YOLO('best.pt')
-        self.processor = ViTImageProcessor.from_pretrained(
-            PRETRAINED_MODEL_NAME_OR_PATH)
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            PRETRAINED_MODEL_NAME_OR_PATH)
-        self.model = VisionEncoderDecoderModel.from_pretrained(
-            PRETRAINED_MODEL_NAME_OR_PATH).to(self.device)
+        self._processor = None
+        self._tokenizer = None
+        self._model = None
         # self.refine_net = load_refinenet_model(cuda=torch.cuda.is_available())
-        self.craft_net = load_craftnet_model(cuda=self.device=='cuda')
+        self._craft_net = None
         self.reader = Reader(['en','ko'])
+
+    @property
+    def processor(self):
+        if self._processor is None:
+            self._processor=ViTImageProcessor.from_pretrained(PRETRAINED_MODEL_NAME_OR_PATH)
+        return self._processor
+
+        
+    @property
+    def tokenizer(self):
+        if self._tokenizer is None:
+            self._tokenizer=AutoTokenizer.from_pretrained(PRETRAINED_MODEL_NAME_OR_PATH)
+        return self._tokenizer
+
+        
+    @property
+    def model(self):
+        if self._model is None:
+            self._model= VisionEncoderDecoderModel.from_pretrained(PRETRAINED_MODEL_NAME_OR_PATH).to(self.device)
+        return self._model
+
+    @property
+    def craft_net(self):
+        if self._craft_net is None:
+            self._craft_net= load_craftnet_model(cuda=self.device=='cuda')
+        return self._craft_net
 
     def craft_text_bubble_detect(self, image):
         prediction_result = get_prediction(image=image, craft_net=self.craft_net, refine_net=None,

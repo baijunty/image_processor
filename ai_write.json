@@ -1,0 +1,259 @@
+{
+    "client_id": "9b87e52ec405444da97d7495a0bbccd3",
+    "prompt": {
+        "11": {
+            "inputs": {
+                "ckpt_name": "waiANINSFWPONYXL_v90.safetensors"
+            },
+            "class_type": "CheckpointLoaderSimple",
+            "_meta": {
+                "title": "Checkpoint加载器(简易)"
+            }
+        },
+        "17": {
+            "inputs": {
+                "text": "score_4, score_5, score_6, source_pony, source_furry, monochrome, realstic, rough sketch, fewer digits, extra digits,water mask,\nlowres, mosaic censoring, stripe, censored, bad anatomy, bad hands,  error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, username, blurry,",
+                "clip": [
+                    "189",
+                    0
+                ]
+            },
+            "class_type": "CLIPTextEncode",
+            "_meta": {
+                "title": "CLIP文本编码器"
+            }
+        },
+        "19": {
+            "inputs": {
+                "seed": 512882468188419,
+                "steps": 30,
+                "cfg": 7.5,
+                "sampler_name": "euler_ancestral",
+                "scheduler": "normal",
+                "denoise": 1,
+                "model": [
+                    "11",
+                    0
+                ],
+                "positive": [
+                    "108",
+                    0
+                ],
+                "negative": [
+                    "108",
+                    1
+                ],
+                "latent_image": [
+                    "218",
+                    0
+                ]
+            },
+            "class_type": "KSampler",
+            "_meta": {
+                "title": "K采样器"
+            }
+        },
+        "22": {
+            "inputs": {
+                "samples": [
+                    "19",
+                    0
+                ],
+                "vae": [
+                    "11",
+                    2
+                ]
+            },
+            "class_type": "VAEDecode",
+            "_meta": {
+                "title": "VAE解码"
+            }
+        },
+        "107": {
+            "inputs": {
+                "control_net_name": "controlnetxlCNXL_xinsirScribbleAnime.safetensors"
+            },
+            "class_type": "ControlNetLoader",
+            "_meta": {
+                "title": "ControlNet加载器"
+            }
+        },
+        "108": {
+            "inputs": {
+                "strength": 0.85,
+                "start_percent": 0,
+                "end_percent": 0.85,
+                "positive": [
+                    "252",
+                    0
+                ],
+                "negative": [
+                    "17",
+                    0
+                ],
+                "control_net": [
+                    "107",
+                    0
+                ],
+                "image": [
+                    "196",
+                    0
+                ],
+                "vae": [
+                    "11",
+                    2
+                ]
+            },
+            "class_type": "ControlNetApplyAdvanced",
+            "_meta": {
+                "title": "ControlNet应用（旧版高级）"
+            }
+        },
+        "111": {
+            "inputs": {
+                "image": "pasted/image (1).png",
+                "upload": "image"
+            },
+            "class_type": "LoadImage",
+            "_meta": {
+                "title": "加载图像"
+            }
+        },
+        "182": {
+            "inputs": {
+                "images": [
+                    "22",
+                    0
+                ]
+            },
+            "class_type": "PreviewImage",
+            "_meta": {
+                "title": "预览图像"
+            }
+        },
+        "189": {
+            "inputs": {
+                "stop_at_clip_layer": -2,
+                "clip": [
+                    "11",
+                    1
+                ]
+            },
+            "class_type": "CLIPSetLastLayer",
+            "_meta": {
+                "title": "CLIP设置停止层"
+            }
+        },
+        "196": {
+            "inputs": {
+                "resolution": 640,
+                "image": [
+                    "239",
+                    0
+                ]
+            },
+            "class_type": "Manga2Anime_LineArt_Preprocessor",
+            "_meta": {
+                "title": "MangaAnime漫画艺术线预处理器"
+            }
+        },
+        "218": {
+            "inputs": {
+                "grow_mask_by": 6,
+                "pixels": [
+                    "111",
+                    0
+                ],
+                "vae": [
+                    "11",
+                    2
+                ],
+                "mask": [
+                    "221",
+                    0
+                ]
+            },
+            "class_type": "VAEEncodeForInpaint",
+            "_meta": {
+                "title": "VAE内补编码器"
+            }
+        },
+        "221": {
+            "inputs": {
+                "threshold": 0.1,
+                "dilation": 2,
+                "segm_detector": [
+                    "224",
+                    1
+                ],
+                "image": [
+                    "111",
+                    0
+                ]
+            },
+            "class_type": "SegmDetectorCombined_v2",
+            "_meta": {
+                "title": "Segm检测器v2"
+            }
+        },
+        "224": {
+            "inputs": {
+                "model_name": "segm/person_yolov8m-seg.pt"
+            },
+            "class_type": "UltralyticsDetectorProvider",
+            "_meta": {
+                "title": "检测加载器"
+            }
+        },
+        "238": {
+            "inputs": {
+                "mask": [
+                    "221",
+                    0
+                ]
+            },
+            "class_type": "InvertMask",
+            "_meta": {
+                "title": "遮罩反转"
+            }
+        },
+        "239": {
+            "inputs": {
+                "image": [
+                    "111",
+                    0
+                ],
+                "alpha": [
+                    "238",
+                    0
+                ]
+            },
+            "class_type": "JoinImageWithAlpha",
+            "_meta": {
+                "title": "合并图像Alpha"
+            }
+        },
+        "252": {
+            "inputs": {
+                "text": "1girl,apron,bow,braid,kirisame marisa,collared shirt,frills,hair between eyes,hair bow,hat,hat bow,long hair,looking at viewer,open mouth,shirt,short sleeves,simple background,single braid,smile,solo,star (symbol),upper body,vest,witch hat",
+                "clip": [
+                    "189",
+                    0
+                ]
+            },
+            "class_type": "CLIPTextEncode",
+            "_meta": {
+                "title": "CLIP文本编码器"
+            }
+        },
+        "269": {
+            "inputs": {
+                "vae_name": "sdxl.safetensors"
+            },
+            "class_type": "VAELoader",
+            "_meta": {
+                "title": "VAE加载器"
+            }
+        }
+    }
+}
