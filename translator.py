@@ -31,7 +31,7 @@ class Translator:
         self._model = None
         # self.refine_net = load_refinenet_model(cuda=torch.cuda.is_available())
         self._craft_net = None
-        self.reader = Reader(['en','ko'])
+        self.reader = Reader(['en','ko'],gpu=self.device=='cuda')
 
     @property
     def processor(self):
