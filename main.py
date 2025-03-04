@@ -1,14 +1,21 @@
-from flask import Flask, request, jsonify, render_template, send_file
 from fastai.vision.core import PILImage
-from translator import Translator
+from flask import Flask, jsonify, render_template, request, send_file
+# from auto_color import AutoColor
+from torchvision import transforms
+from concurrent.futures import ThreadPoolExecutor
 from image_process import ImageProcessor
-from auto_color import AutoColor
+from translator import Translator
+
 app = Flask(__name__)
 translator = Translator()
 image_processor = ImageProcessor()
-coloring = AutoColor()
 
+# coloring = AutoColor()
 
+to_tensor = transforms.ToTensor()
+grayscale = transforms.Grayscale(num_output_channels=1)
+resize = transforms.Resize((8, 9))
+executor=ThreadPoolExecutor(max_workers=8)
 @app.route("/", methods=["GET"])
 def index():
     return render_template("index.html")
@@ -19,7 +26,6 @@ def upload_file():
     import time
     start = time.time()
     files = request.files.getlist("file")
-    print('received ', files)
     proces = request.values.get("process", '')
     threshold = float(request.values.get("threshold", '0.2'))
     limit = int(request.values.get("limit", '40'))
@@ -54,10 +60,11 @@ def upload_file():
                 return jsonify({'error': 'No file part'}), 400
             files = request.files.getlist("file")
             image = PILImage.create(files[0])
-            import numpy
-            import cv2
-            import os
             import io
+            import os
+
+            import cv2
+            import numpy
             lang = request.values.get("lang", 'ja')
             result = translator.translate(cv2.cvtColor(
                 numpy.asarray(image), cv2.COLOR_RGB2BGR), src=lang)
@@ -67,27 +74,37 @@ def upload_file():
             if not files or len(files) == 0:
                 return jsonify({'error': 'No file part'}), 400
             files = request.files.getlist("file")
-            import numpy
-            return jsonify([image_hash(numpy.asarray(PILImage.create(file))) for file in files])
-    print(f'process {proces} time {time.time()-start}')
+            futhres = [executor.submit(image_hash, PILImage.create(file)) for file in files]
+            result = {}
+            try:
+                for i,fut in enumerate(futhres):
+                    result[files[i].filename]=fut.result()
+            except Exception as e:
+                print(e)
+            print('received ', [file.filename for file in files],'time ',time.time()-start)
+            return jsonify(result)
     return jsonify(result)
 
+def hex_to_signed(hex_str, bits):
+    unsigned_val = int(hex_str, 16)
+    mask = (1 << (bits - 1))
+    if unsigned_val & mask:
+        return unsigned_val - (1 << bits)
+    else:
+        return unsigned_val
 
 def image_hash(image):
-    import numpy as np
     import torch
-    from torchvision import transforms
     from imagehash import ImageHash
-    transform = transforms.Compose([transforms.ToTensor(),
-                                    transforms.Grayscale(num_output_channels=1),
-                                    transforms.Resize((8,8))])
-    gray_tensor = transform(image).to('cuda' if torch.cuda.is_available() else 'cpu')
-    mean = gray_tensor.mean()
-    binary_hash = (gray_tensor > mean).to(torch.uint8)
-    pixels = binary_hash.cpu().numpy()
+    image = to_tensor(image).to('cuda' if torch.cuda.is_available() else 'cpu')
+    tensor = grayscale(image).to('cpu')
+    tensor = resize(tensor)
+    mean = tensor.mean()
+    binary_hash = (tensor > mean).to(torch.uint8)
+    pixels = binary_hash.squeeze(0).cpu().numpy()
     diff = pixels[:, 1:] > pixels[:, :-1]
     hash=ImageHash(diff)
-    return int(str(hash),16)
+    return hex_to_signed(str(hash),64)
 
 
 if __name__ == '__main__':

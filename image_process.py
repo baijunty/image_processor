@@ -9,7 +9,7 @@ class ImageProcessor:
     r"""image processor"""
     tag_model_name = 'p1atdev/wd-swinv2-tagger-v3-hf'
 
-    vit_model_name = 'google/vit-base-patch16-224-in21k'
+    vit_model_name = 'legekka/AI-Anime-Image-Detector-ViT'
 
     text_model_name = 'mixedbread-ai/mxbai-embed-large-v1'
     def __init__(self):

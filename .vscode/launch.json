@@ -8,7 +8,8 @@
             "name": "Python 调试程序: 当前文件",
             "type": "debugpy",
             "request": "launch",
-            "program": "${file}",
+            "program": "main.py",
+            "env": {"https_proxy": "http://127.0.0.1:8389","HSA_OVERRIDE_GFX_VERSION":"11.0.0"},
             "justMyCode": false,
             "console": "integratedTerminal"
         }
