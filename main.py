@@ -1,8 +1,10 @@
+from concurrent.futures import ThreadPoolExecutor
+
 from fastai.vision.core import PILImage
 from flask import Flask, jsonify, render_template, request, send_file
 # from auto_color import AutoColor
 from torchvision import transforms
-from concurrent.futures import ThreadPoolExecutor
+
 from image_process import ImageProcessor
 from translator import Translator
 
@@ -14,7 +16,7 @@ image_processor = ImageProcessor()
 
 to_tensor = transforms.ToTensor()
 grayscale = transforms.Grayscale(num_output_channels=1)
-resize = transforms.Resize((8, 9))
+resize = transforms.Resize((8, 8))
 executor=ThreadPoolExecutor(max_workers=8)
 @app.route("/", methods=["GET"])
 def index():
@@ -101,8 +103,9 @@ def image_hash(image):
     tensor = resize(tensor)
     mean = tensor.mean()
     binary_hash = (tensor > mean).to(torch.uint8)
-    pixels = binary_hash.squeeze(0).cpu().numpy()
-    diff = pixels[:, 1:] > pixels[:, :-1]
+    pixels = binary_hash.squeeze(0).numpy()
+    mean = pixels.mean()
+    diff = pixels>mean
     hash=ImageHash(diff)
     return hex_to_signed(str(hash),64)
 
