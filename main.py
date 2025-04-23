@@ -7,7 +7,7 @@ from torchvision import transforms
 
 from image_process import ImageProcessor
 from translator import Translator
-
+import torch
 app = Flask(__name__)
 translator = Translator()
 image_processor = ImageProcessor()
@@ -87,7 +87,63 @@ def upload_file():
             return jsonify(result)
     return jsonify(result)
 
+@app.route('/resize', methods=['GET'])
+def resize_image():
+    """ 缩放图片 """
+    file = request.args.get('file')
+    import os,io
+    from PIL import Image
+    if not file or not os.path.exists(file):
+        return jsonify({'error': 'File does not exist'}), 400
+    image = Image.open(file).convert("RGB")
+    width = request.args.get('width', type=int, default=384)
+    height = request.args.get('height', type=int, default=width*image.height// image.width)
+    resized_image = resize_image_to_target(image, width, height)
+    output = io.BytesIO()
+    resized_image.save(output, format='JPEG')
+    output.seek(0)
+    return send_file(output, mimetype='image/jpeg', as_attachment=True, download_name=f'{os.path.splitext(file)[0]}.jpg')
+
+def resize_image_to_target(image, width, height):
+    """
+    使用PIL库的Image模块对图像进行缩放。
+
+    Args:
+        image (PIL.Image): 需要缩放的原始图像。
+        width (int): 缩放后图像的目标宽度。
+        height (int): 缩放后图像的目标高度。
+
+    Returns:
+        PIL.Image: 已经调整大小后的图像。
+
+    Note:
+        函数中的参数存在错误，请确保调用时传递正确的宽和高。
+    """
+    # 将图像转换为PyTorch张量
+    tensor = to_tensor(image).to('cuda' if torch.cuda.is_available() else 'cpu')
+
+    # 应用调整大小变换，将张量从GPU转移到CPU
+    tensor = transforms.Resize((height, width))(tensor).to('cpu')
+
+    # 将张量转换回PIL图像
+    image = transforms.ToPILImage()(tensor)
+
+    return image
+
 def hex_to_signed(hex_str, bits):
+    """
+    将十六进制字符串转换为有符号整数。
+
+    Args:
+        hex_str (str): 十六进制字符串。
+        bits (int): 位数，用于确定有符号整数的范围。
+
+    Returns:
+        int: 转换后的有符号整数值。
+
+    Note:
+        如果输入的十六进制值超出指定位数的有符号整数范围，可能会返回错误的结果。
+    """
     unsigned_val = int(hex_str, 16)
     mask = (1 << (bits - 1))
     if unsigned_val & mask:
@@ -96,7 +152,6 @@ def hex_to_signed(hex_str, bits):
         return unsigned_val
 
 def image_hash(image):
-    import torch
     from imagehash import ImageHash
     image = to_tensor(image).to('cuda' if torch.cuda.is_available() else 'cpu')
     tensor = grayscale(image).to('cpu')
