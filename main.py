@@ -1,5 +1,3 @@
-from concurrent.futures import ThreadPoolExecutor
-
 from fastai.vision.core import PILImage
 from flask import Flask, jsonify, render_template, request, send_file
 # from auto_color import AutoColor
@@ -17,7 +15,8 @@ image_processor = ImageProcessor()
 to_tensor = transforms.ToTensor()
 grayscale = transforms.Grayscale(num_output_channels=1)
 resize = transforms.Resize((8, 8))
-executor=ThreadPoolExecutor(max_workers=8)
+
+
 @app.route("/", methods=["GET"])
 def index():
     return render_template("index.html")
@@ -76,14 +75,10 @@ def upload_file():
             if not files or len(files) == 0:
                 return jsonify({'error': 'No file part'}), 400
             files = request.files.getlist("file")
-            futhres = [executor.submit(image_hash, PILImage.create(file)) for file in files]
-            result = {}
-            try:
-                for i,fut in enumerate(futhres):
-                    result[files[i].filename]=fut.result()
-            except Exception as e:
-                print(e)
-            print('received ', [file.filename for file in files],'time ',time.time()-start)
+            result = {file.filename: image_hash(
+                PILImage.create(file)) for file in files}
+            print('received ', [file.filename for file in files],
+                  'time ', time.time()-start)
             return jsonify(result)
     return jsonify(result)
 
@@ -91,18 +86,21 @@ def upload_file():
 def resize_image():
     """ 缩放图片 """
     file = request.args.get('file')
-    import os,io
+    import os
+    import io
     from PIL import Image
     if not file or not os.path.exists(file):
         return jsonify({'error': 'File does not exist'}), 400
     image = Image.open(file).convert("RGB")
     width = request.args.get('width', type=int, default=384)
-    height = request.args.get('height', type=int, default=width*image.height// image.width)
+    height = request.args.get(
+        'height', type=int, default=width*image.height // image.width)
     resized_image = resize_image_to_target(image, width, height)
     output = io.BytesIO()
     resized_image.save(output, format='JPEG')
     output.seek(0)
     return send_file(output, mimetype='image/jpeg', as_attachment=True, download_name=f'{os.path.splitext(file)[0]}.jpg')
+
 
 def resize_image_to_target(image, width, height):
     """
@@ -120,7 +118,8 @@ def resize_image_to_target(image, width, height):
         函数中的参数存在错误，请确保调用时传递正确的宽和高。
     """
     # 将图像转换为PyTorch张量
-    tensor = to_tensor(image).to('cuda' if torch.cuda.is_available() else 'cpu')
+    tensor = to_tensor(image).to(
+        'cuda' if torch.cuda.is_available() else 'cpu')
 
     # 应用调整大小变换，将张量从GPU转移到CPU
     tensor = transforms.Resize((height, width))(tensor).to('cpu')
@@ -160,9 +159,8 @@ def image_hash(image):
     binary_hash = (tensor > mean).to(torch.uint8)
     pixels = binary_hash.squeeze(0).numpy()
     mean = pixels.mean()
-    diff = pixels>mean
-    hash=ImageHash(diff)
-    return hex_to_signed(str(hash),64)
+    diff = pixels > mean
+    return hex_to_signed(str(ImageHash(diff)), 64)
 
 
 if __name__ == '__main__':

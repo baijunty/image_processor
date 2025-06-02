@@ -25,7 +25,7 @@ class Translator:
 
     def __init__(self):
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.yolo = YOLO('best.pt')
+        self.yolo = YOLO('models/best.pt')
         self._processor = None
         self._tokenizer = None
         self._model = None

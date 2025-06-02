@@ -79,8 +79,7 @@ class ImageProcessor:
         for k, v in inputs.items():
             inputs[k] = v.to(self.device)
         with torch.no_grad():
-            outputs = self.text_model(**inputs).last_hidden_state
-            embeddings = outputs[:, 0].cpu().detach().numpy()
+            embeddings = self.text_model(**inputs).last_hidden_state[:, 0].cpu().detach().numpy()
             import numpy as np
             from numpy.linalg import norm
             target = embeddings[0]
@@ -93,15 +92,14 @@ def image_process(use_model, preprocess, images, use_device):
     Processes a list of images using the provided model and preprocessing function.
 
     Args:
-        use_model (callable): The model to be used for processing the images.
+        use_model (torch.nn.Module): The model to be used for processing the images.
         preprocess (callable): The preprocessing function to be applied to the images.
         images (list): A list of images to be processed.
+        use_device (str): Device to use for processing ('cuda' or 'cpu').
 
     Returns:
-        dict: A dictionary containing the processed image data.
+        torch.Tensor: The model outputs containing the processed image data.
     """
-    inputs = preprocess.preprocess(
-        images=images, return_tensors='pt').to(use_device)
+    inputs = preprocess(images=images, return_tensors='pt').to(use_device)
     with torch.no_grad():
-        outputs = use_model(**inputs)
-    return outputs
+        return use_model(**inputs)
